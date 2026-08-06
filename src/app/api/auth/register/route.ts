@@ -1,5 +1,6 @@
 import { handleApiError } from "@/lib/error-handler";
 import { validateRequest } from "@/lib/validate-request";
+import { register } from "@/services/auth.service";
 import { registerSchema } from "@/validators/auth/register.schema";
 import { NextResponse } from "next/server";
 
@@ -9,11 +10,17 @@ export async function POST(request: Request) {
         request,
         registerSchema
       );
+      const user = await register(data);
   
-      return NextResponse.json({
-        success: true,
-        data,
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          data: user,
+        },
+        {
+          status: 201,
+        }
+      );
     } catch (error) {
       return handleApiError(error);
     }
