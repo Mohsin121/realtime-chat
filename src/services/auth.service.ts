@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { LoginDto } from "@/validators/auth/login.schema";
 import { RegisterDto } from "@/validators/auth/register.schema";
 import bcrypt from "bcrypt";
+import { cookies } from "next/headers";
+import { getUserById } from "./user.service";
+import { verifyAccessToken } from "./token.service";
 
 export async function register(data: RegisterDto) {
 
@@ -55,3 +58,19 @@ export async function login(data: LoginDto) {
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
 }
+
+
+export async function getAuthenticatedUser(accessToken: string) {
+    const payload = verifyAccessToken(accessToken);
+  
+    const user = await getUserById(payload.sub);
+  
+    if (!user) {
+      throw new ApiError(
+        401,
+        "Unauthorized"
+      );
+    }
+  
+    return user;
+  }
