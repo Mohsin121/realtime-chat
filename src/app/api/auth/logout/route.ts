@@ -13,5 +13,5 @@ export async function POST(){
        });
 
     clearAuthCookies(response);
-
+  return response;
 }
