@@ -46,13 +46,13 @@ export function verifyAccessToken(token: string) {
       sub: payload.sub as string,
     };
   } catch {
-    throw new ApiError(401, "Unauthorized");
+    return null;
   }
 }
 
 
 
-export function verifyRefreshToken(token: string): TokenPayload {
+export function verifyRefreshToken(token: string): TokenPayload | null{
   try {
     const payload = jwt.verify(token, REFRESH_SECRET);
 
@@ -67,6 +67,6 @@ export function verifyRefreshToken(token: string): TokenPayload {
       sub: payload.sub as string,
     };
   } catch {
-    throw new ApiError(401, "Unauthorized");
+    return null;
   }
 }

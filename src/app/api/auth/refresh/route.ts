@@ -18,6 +18,9 @@ export async function POST() {
     }
 
     const payload = verifyRefreshToken(refreshToken);
+    if (!payload) {
+      throw new ApiError(401, "Unauthorized");
+    }
     const user = await getUserById(payload.sub)
 
     if (!user) {

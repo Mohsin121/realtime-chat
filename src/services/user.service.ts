@@ -12,8 +12,6 @@ export async function getUserById(id: string) {
         name: true,
         email: true,
         avatar: true,
-        isOnline: true,
-        lastSeen: true,
         createdAt: true,
       },
     });

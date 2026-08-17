@@ -1,7 +1,7 @@
 import { handleApiError } from "@/lib/error-handler";
 import { validateRequest } from "@/lib/validate-request";
 import { register } from "@/services/auth.service";
-import { registerSchema } from "@/validators/auth/register.schema";
+import { registerSchema } from "@/shared/schemas/auth/register.schema";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {

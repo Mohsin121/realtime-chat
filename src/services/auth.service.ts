@@ -1,11 +1,11 @@
 import { ApiError, UnauthorizedError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
-import { LoginDto } from "@/validators/auth/login.schema";
-import { RegisterDto } from "@/validators/auth/register.schema";
+import { LoginDto } from "@/shared/schemas/auth/login.schema";
+import { RegisterDto } from "@/shared/schemas/auth/register.schema";
 import bcrypt from "bcrypt";
 import { cookies } from "next/headers";
-import { getUserById } from "./user.service";
 import { verifyAccessToken } from "./token.service";
+import { getUserById } from "./user.service";
 
 export async function register(data: RegisterDto) {
 
@@ -31,8 +31,6 @@ export async function register(data: RegisterDto) {
             name: true,
             email: true,
             avatar: true,
-            isOnline: true,
-            lastSeen: true,
             createdAt: true,
         },
     });
@@ -62,6 +60,9 @@ export async function login(data: LoginDto) {
 
 export async function getAuthenticatedUser(accessToken: string) {
     const payload = verifyAccessToken(accessToken);
+    if (!payload) {
+      throw new ApiError(401, "Unauthorized");
+    }
   
     const user = await getUserById(payload.sub);
   

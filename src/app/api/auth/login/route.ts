@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateRequest } from "@/lib/validate-request";
-import { loginSchema } from "@/validators/auth/login.schema";
+import { loginSchema } from "@/shared/schemas/auth/login.schema";
 import { handleApiError } from "@/lib/error-handler";
 import { login } from "@/services/auth.service";
 import { generateAccessToken, generateRefreshToken } from "@/services/token.service";
