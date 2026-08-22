@@ -16,3 +16,11 @@ export function createConversation(userId: string) {
     }
   );
 }
+
+export function markConversationAsRead(
+  conversationId: string
+) {
+  return api.patch(
+    `/api/conversations/${conversationId}/read`
+  );
+}

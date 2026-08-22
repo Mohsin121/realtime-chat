@@ -3,82 +3,155 @@ import { prisma } from "@/lib/prisma";
 import { CreateConversationDto } from "@/shared/schemas/conversation/create-conversation.schema";
 
 
-export async function getUserConversations(
-  currentUserId: string
-) {
-  const conversations =
-    await prisma.conversation.findMany({
-      where: {
-        members: {
-          some: {
-            userId: currentUserId,
-          },
-        },
-      },
+function formatLastMessage(lastMessage: any) {
+  if (!lastMessage) return null;
 
-      include: {
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                avatar: true,
+  return {
+    id: lastMessage.id,
+    conversationId: lastMessage.conversationId,
+    senderId: lastMessage.senderId,
+    content: lastMessage.content,
+    type: lastMessage.type,
+    createdAt: lastMessage.createdAt.toISOString(),
+  };
+}
+
+export async function getUserConversations(userId: string) {
+  const memberships = await prisma.conversationMember.findMany({
+    where: { userId },
+    select: {
+      lastReadAt: true,
+      conversation: {
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  avatar: true,
+                  createdAt:true
+                },
               },
             },
           },
-        },
-
-        messages: {
-          take: 1,
-          orderBy: {
-            createdAt: "desc",
-          },
-          select: {
-            id: true,
-            conversationId: true,
-            senderId: true,
-            content: true,
-            type: true,
-            createdAt: true,
+          messages: {
+            take: 1,
+            orderBy: { createdAt: "desc" },
           },
         },
       },
-
-      orderBy: {
+    },
+    orderBy: {
+      conversation: {
         lastMessageAt: "desc",
       },
+    },
+  });
+
+  return await Promise.all(
+    memberships.map(async (membership) => {
+      const { conversation, lastReadAt } = membership;
+
+      const otherMember = conversation.members.find(
+        (member) => member.userId !== userId
+      );
+
+      const unreadCount = await prisma.message.count({
+        where: {
+          conversationId: conversation.id,
+          createdAt: { gt: lastReadAt },
+          senderId: { not: userId },
+        },
+      });
+
+      const lastMessage = conversation.messages[0] || null;
+
+      return {
+        id: conversation.id,
+        type: conversation.type,
+        name: conversation.type === "GROUP" ? conversation.name : otherMember?.user.name ?? null,
+        avatar: conversation.type === "GROUP" ? conversation.avatar : otherMember?.user.avatar ?? null,
+        otherUser: otherMember?.user || null,
+        lastMessage: lastMessage
+          ? {
+              id: lastMessage.id,
+              conversationId: lastMessage.conversationId,
+              senderId: lastMessage.senderId,
+              content: lastMessage.content,
+              type: lastMessage.type,
+              createdAt: lastMessage.createdAt.toISOString(),
+            }
+          : null,
+        unreadCount,
+      };
+    })
+  );
+}
+
+export async function getConversationById(conversationId: string, userId: string) {
+    const membership = await prisma.conversationMember.findUnique({
+      where: {
+        conversationId_userId: {
+          conversationId,
+          userId,
+        },
+      },
+      include: {
+        conversation: {
+          include: {
+            members: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    avatar: true,
+                    createdAt:true
+                  },
+                },
+              },
+            },
+            messages: {
+              take: 1,
+              orderBy: { createdAt: "desc" },
+            },
+          },
+        },
+      },
     });
-
-  return conversations.map((conversation) => {
-    const otherMember =
-      conversation.type === "DIRECT"
-        ? conversation.members.find(
-            (member) =>
-              member.userId !== currentUserId
-          )
-        : null;
-
+  
+    if (!membership) {
+      throw new ApiError(404, "Conversation not found or access denied");
+    }
+  
+    const { conversation, lastReadAt } = membership;
+    const otherMember = conversation.members.find((m) => m.userId !== userId);
+    const lastMessage = conversation.messages[0] || null;
+  
+    const unreadCount = await prisma.message.count({
+      where: {
+        conversationId: conversation.id,
+        createdAt: { gt: lastReadAt },
+        senderId: { not: userId },
+      },
+    });
+  
     return {
       id: conversation.id,
       type: conversation.type,
-
-      name: conversation.name,
-      avatar: conversation.avatar,
-
-      otherUser: otherMember?.user?? null,
-      lastMessage:
-        conversation.messages[0]
-          ? {
-              ...conversation.messages[0],
-              createdAt:
-                conversation.messages[0].createdAt.toISOString(),
-            }
-          : null,
+      name: conversation.type === "GROUP" ? conversation.name : otherMember?.user.name ?? null,
+      avatar: conversation.type === "GROUP" ? conversation.avatar : otherMember?.user.avatar ?? null,
+      otherUser: otherMember?.user || null,
+      lastMessage: formatLastMessage(lastMessage),
+      unreadCount,
+      lastMessageAt: conversation.lastMessageAt.toISOString(),
+      createdAt: conversation.createdAt.toISOString(),
+      updatedAt: conversation.updatedAt.toISOString(),
     };
-  });
-}
+  }
 
 export async function createDirectConversation(
   currentUserId: string,
@@ -169,5 +242,39 @@ export async function createDirectConversation(
   });
 
   return conversation;
+}
+
+export async function markConversationAsRead(
+  conversationId: string,
+  userId: string
+) {
+  const membership =
+    await prisma.conversationMember.findUnique({
+      where: {
+        conversationId_userId: {
+          conversationId,
+          userId,
+        },
+      },
+    });
+
+  if (!membership) {
+    throw new ApiError(
+      403,
+      "You are not a member of this conversation"
+    );
+  }
+
+  return prisma.conversationMember.update({
+    where: {
+      conversationId_userId: {
+        conversationId,
+        userId,
+      },
+    },
+    data: {
+      lastReadAt: new Date(),
+    },
+  });
 }
 

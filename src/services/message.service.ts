@@ -6,15 +6,14 @@ export async function getConversationMessages(
   conversationId: string,
   userId: string
 ) {
-  const membership =
-    await prisma.conversationMember.findUnique({
-      where: {
-        conversationId_userId: {
-          conversationId,
-          userId,
-        },
+  const membership = await prisma.conversationMember.findUnique({
+    where: {
+      conversationId_userId: {
+        conversationId,
+        userId,
       },
-    });
+    },
+  });
 
   if (!membership) {
     throw new ApiError(
@@ -23,15 +22,14 @@ export async function getConversationMessages(
     );
   }
 
-  return prisma.message.findMany({
+  // 1. Added await here so messages resolves to an array
+  const messages = await prisma.message.findMany({
     where: {
       conversationId,
     },
-
     orderBy: {
       createdAt: "asc",
     },
-
     include: {
       sender: {
         select: {
@@ -39,19 +37,18 @@ export async function getConversationMessages(
           name: true,
           email: true,
           avatar: true,
+          createdAt:true,
         },
       },
-
-
-      receipts: {
-        select: {
-          id: true,
-          userId: true,
-          readAt: true,
-        },
-      },
+     
     },
   });
+
+  return messages.map((msg) => ({
+    ...msg,
+    createdAt: msg.createdAt.toISOString(),
+    updatedAt: msg.updatedAt.toISOString(),
+  }));
 }
 
 export async function createMessage(

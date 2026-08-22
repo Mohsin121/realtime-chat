@@ -34,13 +34,10 @@ io.use((socket, next) => {
     const payload = verifyAccessToken(accessToken);
 
     if (!payload) {
-      return next(new Error("Unauthorized: Invalid or expired token")); // 👈 Fixed hanging return null
+      return next(new Error("Unauthorized: Invalid or expired token"));
     }
 
-    // Attach user ID to socket instance
     socket.data.userId = payload.sub;
-
-
     next();
   } catch {
     next(new Error("Unauthorized"));
@@ -49,21 +46,17 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   const userId = socket.data.userId as string;
-  console.log(`User ${userId} connected with socket ID ${socket.id}`);
+  console.log(`User ${userId} connected (${socket.id})`);
 
-  // Automatically join user's private room for personal notifications
+  // 1. Join personal channel for user-level notifications (Sidebar, Unread badges)
   socket.join(`user:${userId}`);
 
-  // Securely join conversation room
+  // 2. Join specific conversation room when viewing
   socket.on("conversation:join", async (conversationId: string) => {
     try {
-      // Verify user belongs to this conversation before joining
       const isMember = await prisma.conversationMember.findUnique({
         where: {
-          conversationId_userId: {
-            conversationId,
-            userId,
-          },
+          conversationId_userId: { conversationId, userId },
         },
       });
 
@@ -72,18 +65,14 @@ io.on("connection", (socket) => {
         return;
       }
 
-      const room = `conversation:${conversationId}`;
-      socket.join(room);
-      console.log(`User ${userId} (${socket.id}) joined ${room}`);
+      socket.join(`conversation:${conversationId}`);
     } catch (err) {
       console.error("Error joining conversation room:", err);
     }
   });
 
   socket.on("conversation:leave", (conversationId: string) => {
-    const room = `conversation:${conversationId}`;
-    socket.leave(room);
-    console.log(`User ${userId} (${socket.id}) left ${room}`);
+    socket.leave(`conversation:${conversationId}`);
   });
 
   socket.on("typing:start", ({ conversationId }: { conversationId: string }) => {
@@ -100,46 +89,56 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on(
-    "message:send",
-    async ({
-      conversationId,
-      content,
-    }: {
-      conversationId: string;
-      content: string;
-    }) => {
-      try {
-        const userId = socket.data.userId;
-  
-        const message = await createMessage(
-          conversationId,
-          userId,
-          {
-            content,
-          }
-        );
-  
-        io
-          .to(`conversation:${conversationId}`)
-          .emit("message:new", message);
-      } catch (error) {
-        console.error(error);
-  
-        socket.emit("message:error", {
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to send message",
+  // 3. Handle sending messages
+
+socket.on("message:send", async ({ conversationId, content }) => {
+  try {
+    const message = await createMessage(conversationId, userId, { content });
+
+    // 1. Broadcast to active chat room
+    io.to(`conversation:${conversationId}`).emit("message:new", message);
+
+    // 2. Fetch ALL members (including sender)
+    const members = await prisma.conversationMember.findMany({
+      where: { conversationId },
+      select: { userId: true, lastReadAt: true },
+    });
+
+    // 3. Emit sidebar updates to everyone
+    for (const member of members) {
+      const isSender = member.userId === userId;
+
+      let unreadCount = 0;
+
+      if (!isSender) {
+        unreadCount = await prisma.message.count({
+          where: {
+            conversationId,
+            createdAt: member.lastReadAt
+              ? { gt: member.lastReadAt }
+              : undefined,
+          },
         });
       }
+
+      io.to(`user:${member.userId}`).emit("conversation:updated", {
+        conversationId,
+        lastMessage: message,
+        unreadCount,
+      });
     }
-  );
+  } catch (error) {
+    console.error("Failed to send message:", error);
+    socket.emit("message:error", {
+      conversationId,
+      message: error instanceof Error ? error.message : "Failed to send message",
+    });
+  }
+});
 
   socket.on("disconnect", () => {
     console.log(`User ${userId} disconnected (${socket.id})`);
   });
-
 });
 
 httpServer.listen(4000, () => {

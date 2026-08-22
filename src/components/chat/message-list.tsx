@@ -7,29 +7,20 @@ import { MessageBubble } from "./message-bubble";
 
 interface MessageListProps {
   messages: Message[];
-  isLoading: boolean;
   currentUserId: string;
 }
 
 export function MessageList({
   messages,
-  isLoading,
   currentUserId,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages]);
 
-  if (isLoading) {    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-muted-foreground">
-          Loading messages...
-        </p>
-      </div>
-    );
-  }
+
 
   if (messages.length === 0) {
     return (
