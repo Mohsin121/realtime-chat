@@ -16,6 +16,7 @@ import { UserSearchItem } from "@/components/chat/user-search-item";
 import { useDebounce } from "@/hooks/use-debounce";
 import { User } from "@/shared/types/auth";
 import { searchUsers } from "@/api/user";
+import { usePresence } from "@/hooks/use-presence";
 
 interface NewConversationModalProps {
   onStartChat: (userId: string) => Promise<void>;
@@ -31,6 +32,8 @@ export function NewConversationModal({
   const [results, setResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
+
+  const {isOnline} = usePresence()
 
   const debouncedQuery = useDebounce(searchQuery, 300);
 
@@ -142,6 +145,7 @@ export function NewConversationModal({
                   user={user}
                   isLoading={loadingUserId === user.id}
                   onSelect={handleSelectUser}
+                  isOnline={isOnline(user.id)}
                 />
               ))}
             </div>

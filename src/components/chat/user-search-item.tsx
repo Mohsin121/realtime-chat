@@ -17,7 +17,7 @@ export function UserSearchItem({
   user,
   onSelect,
   isLoading = false,
-  isOnline = false,
+  isOnline,
 }: UserSearchItemProps) {
   // Generate 2-letter initials fallback (e.g., "John Doe" -> "JD")
   const initials = user.name

@@ -50,7 +50,8 @@ export function MessageList({
         />
       ))}
     {isTyping && (
-    <div className="inline-flex items-center gap-1 rounded-2xl bg-muted">
+      <div className="mb-6">
+    <div className="inline-flex items-center gap-1 rounded-2xl bg-muted px-2 py-2 ">
       <span className="text-xs text-muted-foreground">Typing...</span>
 
       <span className="flex items-center gap-0.5">
@@ -58,6 +59,7 @@ export function MessageList({
         <span className="h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:-0.15s]" />
         <span className="h-1.5 w-1.5 animate-bounce rounded-full" />
       </span>
+  </div>
   </div>
 )}
 
