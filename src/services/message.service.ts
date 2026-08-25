@@ -6,6 +6,7 @@ export async function getConversationMessages(
   conversationId: string,
   userId: string
 ) {
+  await new Promise((resolve) => setTimeout(resolve, 3000));
   const membership = await prisma.conversationMember.findUnique({
     where: {
       conversationId_userId: {
@@ -37,7 +38,6 @@ export async function getConversationMessages(
           name: true,
           email: true,
           avatar: true,
-          createdAt:true,
         },
       },
      

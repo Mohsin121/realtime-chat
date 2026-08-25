@@ -6,11 +6,16 @@ import { Paperclip, Send } from "lucide-react";
 interface MessageComposerProps {
   onSend: (content: string) => void;
   isSending: boolean;
+  onTyping: () => void;
+  onStopTyping: () => void;
 }
 
 export function MessageComposer({
   onSend,
   isSending,
+  onTyping,
+  onStopTyping,
+  
 }: MessageComposerProps) {
   const [content, setContent] = useState("");
 
@@ -30,6 +35,16 @@ export function MessageComposer({
     setContent("");
   }
 
+
+  const onTextChange = (e: any) => {
+      setContent(e.target.value);
+    
+      if (e.target.value.trim()) {
+        onTyping();
+      } else {
+        onStopTyping();
+      }
+    }
   return (
     <form
       onSubmit={handleSubmit}
@@ -46,11 +61,10 @@ export function MessageComposer({
 
         <textarea
           value={content}
-          onChange={(event) =>
-            setContent(event.target.value)
-          }
+          onChange={onTextChange}
           placeholder="Type a message..."
           rows={1}
+          onBlur={onStopTyping}
           disabled={isSending}
           className="max-h-32 min-h-10 flex-1 resize-none rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
           onKeyDown={(event) => {

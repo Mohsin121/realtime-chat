@@ -92,7 +92,7 @@ export function NewConversationModal({
         }
       />
 
-      <DialogContent className="sm:max-w-[425px] p-0 gap-0 overflow-hidden">
+      <DialogContent className="sm:max-w-106.25 p-0 gap-0 overflow-hidden">
         <DialogHeader className="p-4 pb-2">
           <DialogTitle>New Conversation</DialogTitle>
         </DialogHeader>

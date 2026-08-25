@@ -9,12 +9,15 @@ interface ConversationItemProps {
   conversation: Conversation;
   selected: boolean;
   onClick: () => void;
+  isOnline: boolean;
+
 }
 
 export function ConversationItem({
   conversation,
   selected,
   onClick,
+  isOnline
 }: ConversationItemProps) {
   const { user } = useAuth();
 
@@ -43,6 +46,8 @@ export function ConversationItem({
     return lastMessage.senderId === currentUserId ? `You: ${content}` : content;
   };
 
+  console.log("online", isOnline)
+
   return (
     <button
       type="button"
@@ -53,11 +58,20 @@ export function ConversationItem({
     >
       {/* Avatar Container */}
       <div className="relative shrink-0">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={avatar} alt={name} />
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
-      </div>
+  <Avatar>
+    <AvatarImage src={avatar} />
+    <AvatarFallback>
+      {initials}
+    </AvatarFallback>
+  </Avatar>
+
+  {isOnline && (
+    <span
+      className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-green-600" 
+      aria-label="Online"
+    />
+  )}
+</div>
 
       {/* Details Container */}
       <div className="min-w-0 flex-1">

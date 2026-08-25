@@ -1,5 +1,9 @@
-import { User } from "./auth";
 
+interface User {
+  id: string,
+  name: string,
+  avatar:string | null
+}
 
 export interface Message {
   id: string;

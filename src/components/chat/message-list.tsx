@@ -8,11 +8,13 @@ import { MessageBubble } from "./message-bubble";
 interface MessageListProps {
   messages: Message[];
   currentUserId: string;
+  isTyping:boolean
 }
 
 export function MessageList({
   messages,
   currentUserId,
+  isTyping
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +49,17 @@ export function MessageList({
           isOwn={message.senderId === currentUserId}
         />
       ))}
+    {isTyping && (
+    <div className="inline-flex items-center gap-1 rounded-2xl bg-muted">
+      <span className="text-xs text-muted-foreground">Typing...</span>
+
+      <span className="flex items-center gap-0.5">
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:-0.3s]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:-0.15s]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full" />
+      </span>
+  </div>
+)}
 
       <div ref={bottomRef} />
     </div>

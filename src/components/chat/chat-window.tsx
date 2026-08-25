@@ -2,7 +2,10 @@
 
 import { Conversation } from "@/shared/types/conversation";
 import { Message } from "@/shared/types/message";
+
 import { useMessages } from "@/hooks/use-messages";
+import { useTyping } from "@/hooks/use-typing";
+
 import { ConversationHeader } from "./conversation-header";
 import { MessageList } from "./message-list";
 import { MessageComposer } from "./message-composer";
@@ -13,14 +16,41 @@ interface ChatWindowProps {
   currentUserId: string;
 }
 
-export function ChatWindow({ conversation, initialMessages, currentUserId }: ChatWindowProps) {
-  const { messages, isSending, send } = useMessages(conversation.id, initialMessages);
+export function ChatWindow({
+  conversation,
+  initialMessages,
+  currentUserId,
+}: ChatWindowProps) {
+  const { messages, isSending, send } = useMessages(
+    conversation.id,
+    initialMessages
+  );
+
+  const {
+    isTyping,
+    startTyping,
+    stopTyping,
+  } = useTyping(conversation.id, currentUserId);
 
   return (
-    <section className="flex flex-col h-full min-w-0">
+    <section className="flex h-full min-w-0 flex-col">
       <ConversationHeader conversation={conversation} />
-      <MessageList messages={messages} currentUserId={currentUserId} />
-      <MessageComposer onSend={send} isSending={isSending} />
+
+      {/* Message area */}
+        <MessageList
+          messages={messages}
+          currentUserId={currentUserId}
+          isTyping={isTyping}
+        />
+
+      {/* Typing indicator + composer */}
+      
+        <MessageComposer
+          onSend={send}
+          isSending={isSending}
+          onTyping={startTyping}
+          onStopTyping={stopTyping}
+        />
     </section>
   );
 }

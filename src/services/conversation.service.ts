@@ -17,6 +17,7 @@ function formatLastMessage(lastMessage: any) {
 }
 
 export async function getUserConversations(userId: string) {
+  await new Promise((resolve) => setTimeout(resolve, 3000));
   const memberships = await prisma.conversationMember.findMany({
     where: { userId },
     select: {

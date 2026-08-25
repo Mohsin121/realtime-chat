@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { createMessage } from "@/services/message.service";
 
 const httpServer = createServer();
+const onlineUsers = new Map<string, number>();
 
 const io = new Server(httpServer, {
   cors: {
@@ -50,6 +51,16 @@ io.on("connection", (socket) => {
 
   // 1. Join personal channel for user-level notifications (Sidebar, Unread badges)
   socket.join(`user:${userId}`);
+
+  const previousCount = onlineUsers.get(userId) ?? 0;
+
+onlineUsers.set(userId, previousCount + 1);
+
+if (previousCount === 0) {
+  io.emit("presence:online", {
+    userId,
+  });
+}
 
   // 2. Join specific conversation room when viewing
   socket.on("conversation:join", async (conversationId: string) => {
@@ -136,9 +147,28 @@ socket.on("message:send", async ({ conversationId, content }) => {
   }
 });
 
-  socket.on("disconnect", () => {
-    console.log(`User ${userId} disconnected (${socket.id})`);
+socket.on("presence:get", () => {
+  socket.emit("presence:initial", {
+    userIds: Array.from(onlineUsers.keys()),
   });
+});
+
+socket.on("disconnect", () => {
+  const currentCount = onlineUsers.get(userId) ?? 0;
+  const newCount = currentCount - 1;
+
+  if (newCount <= 0) {
+    onlineUsers.delete(userId);
+
+    io.emit("presence:offline", {
+      userId,
+    });
+  } else {
+    onlineUsers.set(userId, newCount);
+  }
+
+  console.log(`User ${userId} disconnected (${socket.id})`);
+});
 });
 
 httpServer.listen(4000, () => {
