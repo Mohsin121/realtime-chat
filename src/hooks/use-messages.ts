@@ -1,10 +1,10 @@
-// hooks/use-messages.ts
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { socket, connectSocket } from "@/lib/socket";
 import { Message } from "@/shared/types/message";
 import { markConversationAsRead } from "@/api/conversation";
+import { createMessage } from "@/api/message";
 
 export function useMessages(conversationId: string, initialMessages: Message[] = []) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -60,20 +60,30 @@ export function useMessages(conversationId: string, initialMessages: Message[] =
 
   // Send message function with optimistic local update
   const send = useCallback(
-    (content: string, currentUser?: { id: string; name?: string; avatar?: string }) => {
+    async (
+      content: string,
+      currentUser?: {
+        id: string;
+        name?: string;
+        avatar?: string;
+      }
+    ) => {
       if (!conversationId) return;
 
       const trimmedContent = content.trim();
+
       if (!trimmedContent || isSending) return;
 
       setIsSending(true);
+
       const now = new Date().toISOString();
+
       const optimisticMessage: Message = {
         id: `temp-${Date.now()}`,
         conversationId,
-        senderId: currentUser?.id ?? "current-user",       
+        senderId: currentUser?.id ?? "current-user",
         content: trimmedContent,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
         type: "TEXT",
         updatedAt: now,
         sender: {
@@ -83,13 +93,40 @@ export function useMessages(conversationId: string, initialMessages: Message[] =
         },
       };
 
-      // Optimistically append locally
-      setMessages((prev) => [...prev, optimisticMessage]);
+      // Optimistically append
+      setMessages((prev) => [
+        ...prev,
+        optimisticMessage,
+      ]);
 
-      socket.emit("message:send", {
-        conversationId,
-        content: trimmedContent,
-      });
+      try {
+        await createMessage(
+          conversationId,
+          trimmedContent
+        );
+
+        // Do NOT add the returned message here.
+        //
+        // The server will emit:
+        // message:new
+        //
+        // handleNewMessage() will replace the
+        // optimistic message with the real DB message.
+      } catch (error) {
+        console.error(
+          "Failed to send message:",
+          error
+        );
+
+        // HTTP failed → remove optimistic message
+        setMessages((current) =>
+          current.filter(
+            (message) => message.id !== optimisticMessage.id
+          )
+        );
+
+        setIsSending(false);
+      }
     },
     [conversationId, isSending]
   );

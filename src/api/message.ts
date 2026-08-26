@@ -10,7 +10,7 @@ export function getConversationMessages(
   );
 }
 
-export function sendMessage(
+export function createMessage(
     conversationId: string,
     content: string
   ) {

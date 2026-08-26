@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { createMessage, getConversationMessages } from "@/services/message.service";
 import { validateRequest } from "@/lib/validate-request";
 import { createMessageSchema } from "@/shared/schemas/message/create-message.schema";
+import { emitNewMessage } from "@/server/socket";
 
 interface RouteContext {
   params: Promise<{
@@ -48,57 +49,56 @@ export async function GET(
       data: messages,
     });
   } catch (error) {
-    console.log("eorrrrr", error)
     return handleApiError(error);
   }
 }
 
 export async function POST(
-    request: Request,
-    { params }: RouteContext
-  ) {
-    try {
-        const cookieStore = await cookies();
-
+  request: Request,
+  { params }: RouteContext
+) {
+  try {
+    const cookieStore = await cookies();
     const accessToken =
       cookieStore.get("accessToken")?.value;
-
     if (!accessToken) {
       throw new ApiError(401, "Unauthorized");
     }
 
     const user = await getAuthenticatedUser(accessToken);
-      const { conversationId } = await params;
-  
-      if (!conversationId) {
-        throw new ApiError(
-          400,
-          "Conversation ID is required"
-        );
-      }
-  
-      const data = await validateRequest(
-        request,
-        createMessageSchema
+    const { conversationId } = await params;
+
+    if (!conversationId) {
+      throw new ApiError(
+        400,
+        "Conversation ID is required"
       );
-  
-      const message = await createMessage(
-        conversationId,
-        user.id,
-        data
-      );
-  
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Message sent successfully",
-          data: message,
-        },
-        {
-          status: 201,
-        }
-      );
-    } catch (error) {
-      return handleApiError(error);
     }
+
+    const data = await validateRequest(
+      request,
+      createMessageSchema
+    );
+
+    const message = await createMessage(
+      conversationId,
+      user.id,
+      data
+    );
+
+    emitNewMessage(conversationId, message)
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Message sent successfully",
+        data: message,
+      },
+      {
+        status: 201,
+      }
+    );
+  } catch (error) {
+    return handleApiError(error);
+  }
 }
