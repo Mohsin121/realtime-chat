@@ -21,16 +21,21 @@ export function ChatWindow({
   initialMessages,
   currentUserId,
 }: ChatWindowProps) {
-  const { messages, isSending, send } = useMessages(
-    conversation.id,
-    initialMessages
-  );
-
   const {
     isTyping,
     startTyping,
     stopTyping,
   } = useTyping(conversation.id, currentUserId);
+  
+  const {
+    messages,
+    isSending,
+    send,
+  } = useMessages(
+    conversation.id,
+    initialMessages,
+    stopTyping
+  );
 
   return (
     <section className="flex h-full min-w-0 flex-col">

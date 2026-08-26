@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { socket, connectSocket } from "@/lib/socket";
 
@@ -104,7 +104,7 @@ export function useTyping(
       conversationId,
     });
   };
-
+ 
   return {
     typingUsers,
     isTyping: typingUsers.length > 0,

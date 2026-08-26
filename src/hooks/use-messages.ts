@@ -6,7 +6,10 @@ import { Message } from "@/shared/types/message";
 import { markConversationAsRead } from "@/api/conversation";
 import { createMessage } from "@/api/message";
 
-export function useMessages(conversationId: string, initialMessages: Message[] = []) {
+export function useMessages(
+  conversationId: string,
+  initialMessages: Message[] = [],
+  stopTyping: () => void) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isSending, setIsSending] = useState(false);
 
@@ -98,6 +101,8 @@ export function useMessages(conversationId: string, initialMessages: Message[] =
         ...prev,
         optimisticMessage,
       ]);
+
+      stopTyping();
 
       try {
         await createMessage(
